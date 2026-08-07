@@ -44,7 +44,7 @@ Window::Window(int width, int height, const char* name) : width(width), height(h
 	wr.right = width + wr.left;
 	wr.top = 100;
 	wr.bottom = height + wr.top;
-	if (FAILED(AdjustWindowRect(&wr, WS_CAPTION | WS_MINIMIZEBOX | WS_SYSMENU, FALSE)))
+	if (FAILED(AdjustWindowRect(&wr, WS_OVERLAPPEDWINDOW, FALSE)))
 	{
 		throw CHWND_LAST_EXCEPT();
 	}
@@ -52,7 +52,7 @@ Window::Window(int width, int height, const char* name) : width(width), height(h
 	// create window and get hWnd
 	hWnd = CreateWindow(
 		WindowClass::GetName(), name,
-		WS_CAPTION | WS_MINIMIZEBOX | WS_SYSMENU,
+		WS_OVERLAPPEDWINDOW,
 		CW_USEDEFAULT, CW_USEDEFAULT, wr.right - wr.left, wr.bottom - wr.top,
 		nullptr, nullptr, WindowClass::GetInstance(), this
 	);
@@ -110,9 +110,35 @@ LRESULT CALLBACK Window::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
 {
 	switch (msg)
 	{
+	// return 0, because we dont want the control flow to go to DefWindowProc, and the window must be destroyed by the destructor
 	case WM_CLOSE:
 		PostQuitMessage(0);
+		return 0;
 		break;
+
+	// clear keystate when window loses focus to prevent input getting locked in
+	case WM_KILLFOCUS:
+		keyboard.ClearState();
+		break;
+
+	// KEYBOARD MESSAGES
+	case WM_KEYDOWN:
+	case WM_SYSKEYDOWN: // syskey commands need to be handled to track ALT key(VK_MENU) and F10
+		// filter autorepeat key events
+		if(!(lParam & 0x40000000) || keyboard.AutorepeatIsEnabled())
+			keyboard.OnKeyPressed(static_cast<unsigned char>(wParam));
+		break;
+
+	case WM_KEYUP:
+	case WM_SYSKEYUP:
+		keyboard.OnKeyReleased(static_cast<unsigned char>(wParam));
+		break;
+
+	case WM_CHAR:
+		keyboard.OnChar(static_cast<unsigned char>(wParam));
+		break;
+	// END KEYBOARD MESSAGES
+
 	default:
 		break;
 	}

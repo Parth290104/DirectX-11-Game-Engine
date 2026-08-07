@@ -138,6 +138,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ChilliException.cpp" />
+    <ClCompile Include="Keyboard.cpp" />
     <ClCompile Include="Window.cpp" />
     <ClCompile Include="WindowsMessageMap.cpp" />
     <ClCompile Include="WindowsMessageMap.h" />
@@ -146,6 +147,7 @@
   <ItemGroup>
     <ClInclude Include="ChilliException.h" />
     <ClInclude Include="ChilliWin.h" />
+    <ClInclude Include="Keyboard.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="Restrict.h" />
     <ClInclude Include="Window.h" />
