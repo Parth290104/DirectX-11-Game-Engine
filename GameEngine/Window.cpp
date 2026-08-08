@@ -39,12 +39,12 @@ HINSTANCE Window::WindowClass::GetInstance() noexcept
 
 Window::Window(int width, int height, const char* name) : width(width), height(height)
 {
-	RECT wr;
+	RECT wr{};
 	wr.left = 100;
 	wr.right = width + wr.left;
 	wr.top = 100;
 	wr.bottom = height + wr.top;
-	if (FAILED(AdjustWindowRect(&wr, WS_OVERLAPPEDWINDOW, FALSE)))
+	if (AdjustWindowRect(&wr, WS_CAPTION | WS_MINIMIZEBOX | WS_SYSMENU, FALSE) == 0)
 	{
 		throw CHWND_LAST_EXCEPT();
 	}
@@ -69,6 +69,14 @@ Window::Window(int width, int height, const char* name) : width(width), height(h
 Window::~Window()
 {
 	DestroyWindow(hWnd);
+}
+
+void Window::setTitle(const std::string& title) const
+{
+	if (SetWindowText(hWnd, title.c_str()) == 0)
+	{
+		throw CHWND_LAST_EXCEPT();
+	}
 }
 
 LRESULT CALLBACK Window::HandleMsgSetup(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -138,6 +146,73 @@ LRESULT CALLBACK Window::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
 		keyboard.OnChar(static_cast<unsigned char>(wParam));
 		break;
 	// END KEYBOARD MESSAGES
+
+	// START MOUSE MESSAGES
+	case WM_MOUSEMOVE:
+	{
+		const POINTS points = MAKEPOINTS(lParam);
+		if (points.x >= 0 && points.y < width && points.y >= 0 && points.y < height)
+		{
+			mouse.OnMouseMove(points.x, points.y);
+			if (!mouse.IsInWindow())
+			{
+				SetCapture(hWnd);
+				mouse.OnMouseEnter();
+			}
+		}
+		
+		else
+		{
+			if (wParam & (MK_LBUTTON | MK_RBUTTON))
+			{
+				mouse.OnMouseMove(points.x, points.y);
+			}
+
+			else
+			{
+				ReleaseCapture();
+				mouse.OnMouseLeave();
+			}
+		}
+		break;
+	}
+
+	case WM_LBUTTONDOWN:
+	{
+		const POINTS points = MAKEPOINTS(lParam);
+		mouse.OnLeftPressed(points.x, points.y);
+		break;
+	}
+
+	case WM_RBUTTONDOWN:
+	{
+		const POINTS points = MAKEPOINTS(lParam);
+		mouse.OnRightPressed(points.x, points.y);
+		break;
+	}
+
+	case WM_LBUTTONUP:
+	{
+		const POINTS points = MAKEPOINTS(lParam);
+		mouse.OnLeftReleased(points.x, points.y);
+		break;
+	}
+
+	case WM_RBUTTONUP:
+	{
+		const POINTS points = MAKEPOINTS(lParam);
+		mouse.OnRightReleased(points.x, points.y);
+		break;
+	}
+
+	case WM_MOUSEWHEEL:
+	{
+		const POINTS points = MAKEPOINTS(lParam);
+		const int delta = GET_WHEEL_DELTA_WPARAM(wParam);
+		mouse.OnWheelDelta(points.x, points.y, delta);
+		break;
+	}
+	// END MOUSE MESSGAES
 
 	default:
 		break;

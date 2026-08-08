@@ -2,6 +2,7 @@
 #include "ChilliWin.h"
 #include "ChilliException.h"
 #include "Keyboard.h"
+#include "Mouse.h"
 
 class Window
 {
@@ -43,6 +44,7 @@ public:
 	~Window();
 	Window(const Window&) = delete;
 	Window& operator= (const Window&) = delete;
+	void setTitle(const std::string& title) const;
 
 private:
 	static LRESULT CALLBACK HandleMsgSetup(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -51,6 +53,7 @@ private:
 
 public:
 	Keyboard keyboard;
+	Mouse mouse;
 
 private:
 	int width;
