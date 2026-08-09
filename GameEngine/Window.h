@@ -3,7 +3,9 @@
 #include "ChilliException.h"
 #include "Keyboard.h"
 #include "Mouse.h"
+#include "Graphics.h"
 #include <optional>
+#include <memory>
 
 class Window
 {
@@ -11,8 +13,14 @@ class Window
 public:
 	class Exception : public ChilliException
 	{
+		using ChilliException::ChilliException;
 	public:
-		Exception(int lineNumber, const char* file, HRESULT hr) noexcept;
+		static std::string TranslateErrorCode(HRESULT hr) noexcept;
+	};
+	class HrException : public Exception
+	{
+	public:
+		HrException(int lineNumber, const char* file, HRESULT hr) noexcept;
 		const char* what() const noexcept override;
 		const char* GetType() const noexcept override;
 		static std::string TranslateErrorCode(HRESULT hr) noexcept;
@@ -21,6 +29,13 @@ public:
 
 	private:
 		HRESULT hr;
+	};
+
+	class NoGraphicsException : public Exception
+	{
+	public:
+		using Exception::Exception;
+		const char* GetType() const noexcept override;
 	};
 
 private:
@@ -47,6 +62,7 @@ public:
 	Window& operator= (const Window&) = delete;
 	void setTitle(const std::string& title) const;
 	static std::optional<int> ProcessMessages();
+	Graphics& getGraphicsObject() const;
 
 private:
 	static LRESULT CALLBACK HandleMsgSetup(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -61,8 +77,9 @@ private:
 	int width;
 	int height;
 	HWND hWnd;
+	std::unique_ptr<Graphics> pGraphicsObject;
 };
 
 // error exception helper macro
-#define CHWND_EXCEPT(hr) Window::Exception(__LINE__, __FILE__, hr)
-#define CHWND_LAST_EXCEPT() Window::Exception(__LINE__, __FILE__, GetLastError())
+#define CHWND_EXCEPT(hr) Window::HrException(__LINE__, __FILE__, hr)
+#define CHWND_LAST_EXCEPT() Window::HrException(__LINE__, __FILE__, GetLastError())

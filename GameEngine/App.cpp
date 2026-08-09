@@ -11,9 +11,10 @@ int App::Go()
 {
 	while (true)
 	{
-
+		// process all messages pending, but not block for new messages
 		if (const auto eCode = Window::ProcessMessages())
 		{
+			// if return optional has value, means we are quitting so return exit code
 			return *eCode;
 		}
 
@@ -23,8 +24,7 @@ int App::Go()
 
 void App::DoFrame()
 {
-	const float time = timer.Peek();
-	std::ostringstream oss;
-	oss << "Time elapsed: " << std::setprecision(1) << std::fixed << time << "s" << std::endl;
-	window.setTitle(oss.str());
+	const float c = sin(timer.Peek()) / 2.0f + 0.5f;
+	window.getGraphicsObject().ClearBuffer(c, c, c);
+	window.getGraphicsObject().EndFrame();
 }

@@ -1,6 +1,7 @@
 #include "Window.h"
 #include <sstream>
 #include "Resource.h"
+#include "WindowsThrowMacros.h"
 
 Window::WindowClass Window::WindowClass::wndClass;
 
@@ -64,6 +65,9 @@ Window::Window(int width, int height, const char* name) : width(width), height(h
 	}
 
 	ShowWindow(hWnd, SW_SHOWDEFAULT);
+
+	// create graphics object;
+	pGraphicsObject = std::make_unique<Graphics>(hWnd);
 }
 
 Window::~Window()
@@ -96,6 +100,13 @@ std::optional<int> Window::ProcessMessages()
 	}
 
 	return {};
+}
+
+Graphics& Window::getGraphicsObject() const
+{
+	if (!pGraphicsObject)
+		throw CHWND_NOGFX_EXCEPT();
+	return *pGraphicsObject;
 }
 
 LRESULT CALLBACK Window::HandleMsgSetup(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -240,12 +251,12 @@ LRESULT CALLBACK Window::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
 	return DefWindowProc(hWnd, msg, wParam, lParam);
 }
 
-Window::Exception::Exception(int lineNumber, const char* file, HRESULT hr) noexcept: ChilliException(lineNumber, file), hr(hr)
+Window::HrException::HrException(int lineNumber, const char* file, HRESULT hr) noexcept : Exception(lineNumber, file), hr(hr)
 {
 
 }
 
-const char* Window::Exception::what() const noexcept
+const char* Window::HrException::what() const noexcept
 {
 	std::ostringstream oss;
 	oss << GetType() << std::endl
@@ -257,7 +268,7 @@ const char* Window::Exception::what() const noexcept
 	return whatBuffer.c_str();
 }
 
-const char* Window::Exception::GetType() const noexcept
+const char* Window::HrException::GetType() const noexcept
 {
 	return "Chilli Window Exception";
 }
@@ -286,12 +297,12 @@ std::string Window::Exception::TranslateErrorCode(HRESULT hr) noexcept
 	return errorString;
 }
 
-HRESULT Window::Exception::GetErrorCode() const noexcept
+HRESULT Window::HrException::GetErrorCode() const noexcept
 {
 	return hr;
 }
 
-std::string Window::Exception::GetErrorString() const noexcept
+std::string Window::HrException::GetErrorString() const noexcept
 {
 	return TranslateErrorCode(hr);
 }
