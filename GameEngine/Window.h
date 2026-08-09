@@ -3,6 +3,7 @@
 #include "ChilliException.h"
 #include "Keyboard.h"
 #include "Mouse.h"
+#include <optional>
 
 class Window
 {
@@ -45,6 +46,7 @@ public:
 	Window(const Window&) = delete;
 	Window& operator= (const Window&) = delete;
 	void setTitle(const std::string& title) const;
+	static std::optional<int> ProcessMessages();
 
 private:
 	static LRESULT CALLBACK HandleMsgSetup(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);

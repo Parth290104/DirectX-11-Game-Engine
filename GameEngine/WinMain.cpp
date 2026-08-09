@@ -1,41 +1,26 @@
-#include "Window.h"
-#include "WindowsMessageMap.h"
+#include "App.h"
 
-LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
-{
-	static WindowsMessageMap windowsMessageMap;
-
-	OutputDebugString(windowsMessageMap(msg, lParam, wParam).c_str());
-
-	switch(msg)
-	{
-	case WM_CLOSE:
-		PostQuitMessage(0);
-		break;
-	}
-
-	return DefWindowProc(hWnd, msg, wParam, lParam);
-}
+//LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+//{
+//	static WindowsMessageMap windowsMessageMap;
+//
+//	OutputDebugString(windowsMessageMap(msg, lParam, wParam).c_str());
+//
+//	switch(msg)
+//	{
+//	case WM_CLOSE:
+//		PostQuitMessage(0);
+//		break;
+//	}
+//
+//	return DefWindowProc(hWnd, msg, wParam, lParam);
+//}
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
 	try
 	{
-		Window window(800, 300, "First Window");
-		MSG msg;
-		BOOL gResult;
-		while ((gResult = GetMessage(&msg, nullptr, 0, 0)) > 0)
-		{
-			TranslateMessage(&msg);
-			DispatchMessage(&msg);
-		}
-
-		if (gResult == -1)
-		{
-			return -1;
-		}
-
-		return (int)msg.wParam;
+		return App{}.Go();
 	}
 
 	catch (const ChilliException& e)
