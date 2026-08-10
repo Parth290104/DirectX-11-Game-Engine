@@ -63,7 +63,7 @@
 
 #define  CHK_ERRA_W(hrchk) \
         case hrchk: \
-             return L##hrchk;
+             return DX_STR_WRAP(#hrchk);
 
 #define  CHK_ERR_A(hrchk, strOut) \
         case hrchk: \
@@ -78,7 +78,7 @@
 #define  CHK_ERR_WIN32A_W(hrchk) \
         case HRESULT_FROM_WIN32b(hrchk): \
         case hrchk: \
-             return L##hrchk;
+             return DX_STR_WRAP(#hrchk);
 
 #define  CHK_ERR_WIN32_ONLY_W(hrchk, strOut) \
         case HRESULT_FROM_WIN32b(hrchk): \
@@ -100,9 +100,11 @@ const WCHAR* WINAPI DXGetErrorStringW(_In_ HRESULT hr)
 #define CHK_ERR CHK_ERR_W
 #define CHK_ERR_WIN32A CHK_ERR_WIN32A_W
 #define CHK_ERR_WIN32_ONLY CHK_ERR_WIN32_ONLY_W
-#define DX_STR_WRAP(...) L##__VA_ARGS__
+#define DX_STR_WRAP_HELPER(x) L##x
+#define DX_STR_WRAP(x) DX_STR_WRAP_HELPER(x)
 #include "DXGetErrorString.inl"
 #undef DX_STR_WRAP
+#undef DX_STR_WRAP_HELPER
 #undef CHK_ERR_WIN32A
 #undef CHK_ERR_WIN32_ONLY
 #undef CHK_ERRA
@@ -137,12 +139,12 @@ const CHAR* WINAPI DXGetErrorStringA(_In_ HRESULT hr)
 
 #define  CHK_ERRA_W(hrchk) \
         case hrchk: \
-             wcscpy_s( desc, count, L#hrchk ); \
-			 break;
+             wcscpy_s( desc, count, DX_STR_WRAP(#hrchk) ); \
+             break;
 #define  CHK_ERR_W(hrchk, strOut) \
         case hrchk: \
-             wcscpy_s( desc, count, L##strOut ); \
-			 break;
+             wcscpy_s( desc, count, DX_STR_WRAP(strOut) ); \
+             break;
 #define  CHK_ERRA_A(hrchk) \
         case hrchk: \
              strcpy_s( desc, count, #hrchk ); \
@@ -156,31 +158,42 @@ const CHAR* WINAPI DXGetErrorStringA(_In_ HRESULT hr)
 //--------------------------------------------------------------------------------------
 void WINAPI DXGetErrorDescriptionW(_In_ HRESULT hr, _Out_cap_(count) WCHAR* desc, _In_ size_t count)
 {
+#define DX_STR_WRAP_HELPER(x) L##x
+#define DX_STR_WRAP(x) DX_STR_WRAP_HELPER(x)
 #define CHK_ERRA CHK_ERRA_W
 #define CHK_ERR CHK_ERR_W
 #define DX_FORMATMESSAGE FormatMessageW
 #include "DXGetErrorDescription.inl"
+
 #undef DX_FORMATMESSAGE
 #undef CHK_ERRA
 #undef CHK_ERR
+#undef DX_STR_WRAP
+#undef DX_STR_WRAP_HELPER
 }
 
 void WINAPI DXGetErrorDescriptionA(_In_ HRESULT hr, _Out_cap_(count) CHAR* desc, _In_ size_t count)
 {
+#define DX_STR_WRAP_HELPER(x) x
+#define DX_STR_WRAP(x) DX_STR_WRAP_HELPER(x)
 #define CHK_ERRA CHK_ERRA_A
 #define CHK_ERR CHK_ERR_A
 #define DX_FORMATMESSAGE FormatMessageA
 #include "DXGetErrorDescription.inl"
+
 #undef DX_FORMATMESSAGE
 #undef CHK_ERRA
 #undef CHK_ERR
+#undef DX_STR_WRAP
+#undef DX_STR_WRAP_HELPER
 }
 
 //-----------------------------------------------------------------------------
 HRESULT WINAPI DXTraceW(_In_z_ const WCHAR* strFile, _In_ DWORD dwLine, _In_ HRESULT hr,
     _In_opt_ const WCHAR* strMsg, _In_ bool bPopMsgBox)
 {
-#define DX_STR_WRAP(...) L##__VA_ARGS__
+#define DX_STR_WRAP_HELPER(x) L##x
+#define DX_STR_WRAP(x) DX_STR_WRAP_HELPER(x)
 #define DX_CHAR WCHAR
 #define DX_SPRINTF_S swprintf_s
 #define DX_STRCPY_S wcscpy_s
@@ -191,6 +204,7 @@ HRESULT WINAPI DXTraceW(_In_z_ const WCHAR* strFile, _In_ DWORD dwLine, _In_ HRE
 #define DX_GETERRORSTRING DXGetErrorStringW
 #include "DXTrace.inl"
 #undef DX_STR_WRAP
+#undef DX_STR_WRAP_HELPER
 #undef DX_CHAR
 #undef DX_SPRINTF_S
 #undef DX_STRCPY_S

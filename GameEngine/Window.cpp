@@ -306,3 +306,13 @@ std::string Window::HrException::GetErrorString() const noexcept
 {
 	return TranslateErrorCode(hr);
 }
+
+std::string Window::HrException::TranslateErrorCode(HRESULT hr) noexcept
+{
+	return Exception::TranslateErrorCode(hr);
+}
+
+const char* Window::NoGraphicsException::GetType() const noexcept
+{
+	return "Chilli Window Exception [No Graphics]";
+}
