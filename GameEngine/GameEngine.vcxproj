@@ -140,6 +140,7 @@
     <ClCompile Include="App.cpp" />
     <ClCompile Include="ChilliException.cpp" />
     <ClCompile Include="dxer.cpp" />
+    <ClCompile Include="DXGIInfoManager.cpp" />
     <ClCompile Include="Graphics.cpp" />
     <ClCompile Include="Timer.cpp" />
     <ClCompile Include="Keyboard.cpp" />
@@ -153,6 +154,7 @@
     <ClInclude Include="App.h" />
     <ClInclude Include="ChilliException.h" />
     <ClInclude Include="dxerr.h" />
+    <ClInclude Include="DXGIInfoManager.h" />
     <ClInclude Include="Graphics.h" />
     <ClInclude Include="Timer.h" />
     <ClInclude Include="ChilliWin.h" />

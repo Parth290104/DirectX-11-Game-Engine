@@ -48,6 +48,9 @@
     <ClCompile Include="dxer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="DXGIInfoManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Window.h">
@@ -84,6 +87,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="WindowsThrowMacros.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DXGIInfoManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
