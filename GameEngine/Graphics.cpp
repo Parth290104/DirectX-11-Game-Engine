@@ -2,11 +2,13 @@
 #include "dxerr.h"
 #include <sstream>
 
+namespace wrl = Microsoft::WRL;
+
 #pragma comment(lib, "d3d11.lib")
 
 // graphics exception checking/throwing macros (some dxgi infos)
 #define GFX_EXCEPT_NOINFO(hr) Graphics::HrException(__LINE__, __FILE__, (hr))
-#define GFX_THROW_NOINFO(hrcall) if(FAILED(hr = (hrcall)) throw Graphics::HrException(__LINE__, __FILE__, (hr)))
+#define GFX_THROW_NOINFO(hrcall) if(FAILED(hr = (hrcall))) throw Graphics::HrException(__LINE__, __FILE__, (hr))
 
 #ifndef NDEBUG
 #define GFX_EXCEPT(hr) Graphics::HrException(__LINE__, __FILE__, (hr), dxgiInfoManager.GetMessages())
@@ -59,45 +61,26 @@ Graphics::Graphics(HWND hWnd)
 		0,
 		D3D11_SDK_VERSION,
 		&dxgiSwapChainDesc,
-		&pIDXGISwapChain,
-		&pID3D11Device,
+		&pIDXGISwapChain, // & operator first releases and then return the address
+		&pID3D11Device, // whereas GetAdreessOf() Directly returns the object.
 		nullptr,
 		&pID3D11DeviceContext
 	));
 
 	// gain access to texture subresource in swap chain (back buffer)
-	ID3D11Resource* pID3D11Resource_BackBuffer = nullptr;
+	wrl::ComPtr<ID3D11Resource> pID3D11Resource_BackBuffer = nullptr;
 
-	GFX_THROW_INFO(pIDXGISwapChain->GetBuffer
-	(
+	GFX_THROW_INFO(pIDXGISwapChain->GetBuffer(
 		0,
 		__uuidof(ID3D11Resource),
-		reinterpret_cast<void**>(&pID3D11Resource_BackBuffer)
+		&pID3D11Resource_BackBuffer
 	));
 
-	GFX_THROW_INFO(pID3D11Device->CreateRenderTargetView
-	(
-		pID3D11Resource_BackBuffer,
+	GFX_THROW_INFO(pID3D11Device->CreateRenderTargetView(
+		pID3D11Resource_BackBuffer.Get(),
 		nullptr,
-		(&pID3D11RenderTargetView)
+		&pID3D11RenderTargetView
 	));
-
-	pID3D11Resource_BackBuffer->Release();
-}
-
-Graphics::~Graphics()
-{
-	if (pID3D11RenderTargetView != nullptr)
-		pID3D11RenderTargetView->Release();
-
-	if (pID3D11DeviceContext != nullptr)
-		pID3D11DeviceContext->Release();
-	
-	if (pIDXGISwapChain != nullptr)
-		pIDXGISwapChain->Release();
-
-	if (pID3D11Device != nullptr)
-		pID3D11Device->Release();
 }
 
 void Graphics::EndFrame()
@@ -120,7 +103,7 @@ void Graphics::ClearBuffer(float red, float green, float blue) noexcept
 {
 	const float color[] = { red, green, blue, 1.0f };
 
-	pID3D11DeviceContext->ClearRenderTargetView(pID3D11RenderTargetView, color);
+	pID3D11DeviceContext->ClearRenderTargetView(pID3D11RenderTargetView.Get(), color);
 }
 
 Graphics::HrException::HrException(int line, const char* file, HRESULT hr, std::vector<std::string> infoMessages) noexcept : Exception(line, file), hr(hr)

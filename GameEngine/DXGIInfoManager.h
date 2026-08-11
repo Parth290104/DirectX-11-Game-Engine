@@ -2,12 +2,14 @@
 #include "ChilliWin.h"
 #include <string>
 #include <vector>
+#include <dxgidebug.h>
+#include <wrl/client.h>
 
 class DXGIInfoManager
 {
 public:
 	DXGIInfoManager();
-	~DXGIInfoManager();
+	~DXGIInfoManager() = default;
 	DXGIInfoManager(const DXGIInfoManager&) = delete;
 	DXGIInfoManager& operator=(const DXGIInfoManager&) = delete;
 	void Set() noexcept;
@@ -15,5 +17,5 @@ public:
 
 private:
 	unsigned long long next = 0u;
-	struct IDXGIInfoQueue* pIDXGIInfoQueue = nullptr;
+	Microsoft::WRL::ComPtr<IDXGIInfoQueue> pIDXGIInfoQueue = nullptr;
 };
