@@ -1,10 +1,12 @@
 #include "Graphics.h"
 #include "dxerr.h"
 #include <sstream>
+#include <d3dcompiler.h>
 
 namespace wrl = Microsoft::WRL;
 
 #pragma comment(lib, "d3d11.lib")
+#pragma comment(lib, "D3DCompiler.lib")
 
 // graphics exception checking/throwing macros (some dxgi infos)
 #define GFX_EXCEPT_NOINFO(hr) Graphics::HrException(__LINE__, __FILE__, (hr))
@@ -144,15 +146,25 @@ void Graphics::DrawTestTriangle()
 	D3D11_SUBRESOURCE_DATA d3d11SubResourceData{};
 	d3d11SubResourceData.pSysMem = vertices;
 
+	GFX_THROW_INFO(pID3D11Device->CreateBuffer(&d3d11BufferDesc, &d3d11SubResourceData, &pID3D11Buffer_VertexBuffer));
+
 	// Bind Vertex buffer to pipeline
 	const UINT stride = sizeof(Vertex);
 	const UINT offset = 0u;
 
-	GFX_THROW_INFO(pID3D11Device->CreateBuffer(&d3d11BufferDesc, &d3d11SubResourceData, &pID3D11Buffer_VertexBuffer));
-
 	pID3D11DeviceContext->IASetVertexBuffers(0u, 1u, &pID3D11Buffer_VertexBuffer, &stride, &offset);
 
-	GFX_THROW_INFO_ONLY(pID3D11DeviceContext->Draw(3u, 0u));
+	wrl::ComPtr<ID3D11VertexShader> pID3D11VertexShader;
+	wrl::ComPtr<ID3DBlob> pID3DBlob;
+
+	GFX_THROW_INFO(D3DReadFileToBlob(L"VertexShader.cso", &pID3DBlob)); // CSO - Compiled shader object
+
+	GFX_THROW_INFO(pID3D11Device -> CreateVertexShader(pID3DBlob -> GetBufferPointer(), pID3DBlob -> GetBufferSize(), nullptr, &pID3D11VertexShader));
+
+	// bind vertex shader
+	pID3D11DeviceContext->VSSetShader(pID3D11VertexShader.Get(), nullptr, 0);
+
+	GFX_THROW_INFO_ONLY(pID3D11DeviceContext->Draw(static_cast<UINT>(std::size(vertices)), 0u));
 }
 
 Graphics::HrException::HrException(int line, const char* file, HRESULT hr, std::vector<std::string> infoMessages) noexcept : Exception(line, file), hr(hr)
