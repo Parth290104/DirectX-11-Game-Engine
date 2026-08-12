@@ -152,17 +152,62 @@ void Graphics::DrawTestTriangle()
 	const UINT stride = sizeof(Vertex);
 	const UINT offset = 0u;
 
-	pID3D11DeviceContext->IASetVertexBuffers(0u, 1u, &pID3D11Buffer_VertexBuffer, &stride, &offset);
+	pID3D11DeviceContext->IASetVertexBuffers(0u, 1u, pID3D11Buffer_VertexBuffer.GetAddressOf(), &stride, &offset);
 
-	wrl::ComPtr<ID3D11VertexShader> pID3D11VertexShader;
+	// create pixel shader
+	wrl::ComPtr<ID3D11PixelShader> pID3D11PixelShader;
 	wrl::ComPtr<ID3DBlob> pID3DBlob;
 
-	GFX_THROW_INFO(D3DReadFileToBlob(L"VertexShader.cso", &pID3DBlob)); // CSO - Compiled shader object
+	GFX_THROW_INFO(D3DReadFileToBlob(L"PixelShader.cso", &pID3DBlob));
+	GFX_THROW_INFO(pID3D11Device->CreatePixelShader(pID3DBlob->GetBufferPointer(), pID3DBlob->GetBufferSize(), nullptr, &pID3D11PixelShader));
 
+	// bind pixel shader
+	pID3D11DeviceContext->PSSetShader(pID3D11PixelShader.Get(), nullptr, 0u);
+
+	// create vertex shader
+	wrl::ComPtr<ID3D11VertexShader> pID3D11VertexShader;	
+
+	GFX_THROW_INFO(D3DReadFileToBlob(L"VertexShader.cso", &pID3DBlob)); // CSO - Compiled shader object
 	GFX_THROW_INFO(pID3D11Device -> CreateVertexShader(pID3DBlob -> GetBufferPointer(), pID3DBlob -> GetBufferSize(), nullptr, &pID3D11VertexShader));
 
 	// bind vertex shader
-	pID3D11DeviceContext->VSSetShader(pID3D11VertexShader.Get(), nullptr, 0);
+	pID3D11DeviceContext->VSSetShader(pID3D11VertexShader.Get(), nullptr, 0u);
+
+	// input layout object (2D position only)
+	wrl::ComPtr<ID3D11InputLayout> pID3D11InputLayout;
+
+	const D3D11_INPUT_ELEMENT_DESC d3d11InputElementDesc[] =
+	{
+		{"POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}
+	};
+
+	GFX_THROW_INFO(pID3D11Device->CreateInputLayout
+	(
+		d3d11InputElementDesc,
+		static_cast<UINT>(std::size(d3d11InputElementDesc)),
+		pID3DBlob->GetBufferPointer(),
+		pID3DBlob->GetBufferSize(),
+		&pID3D11InputLayout
+	));
+
+	pID3D11DeviceContext->IASetInputLayout(pID3D11InputLayout.Get());
+
+	// bind render target
+	pID3D11DeviceContext->OMSetRenderTargets(1u, pID3D11RenderTargetView.GetAddressOf(), nullptr); // OM - Output Merger
+
+	// Set primitive topology to triangle list
+	pID3D11DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	// configure viewport
+	D3D11_VIEWPORT d3d11Viewport{};
+	d3d11Viewport.Width = 800;
+	d3d11Viewport.Height = 600;
+	d3d11Viewport.MinDepth = 0;
+	d3d11Viewport.MaxDepth = 1;
+	d3d11Viewport.TopLeftX = 0;
+	d3d11Viewport.TopLeftY = 0;
+
+	pID3D11DeviceContext->RSSetViewports(1u, &d3d11Viewport); // RS - Rasterizer Stage
 
 	GFX_THROW_INFO_ONLY(pID3D11DeviceContext->Draw(static_cast<UINT>(std::size(vertices)), 0u));
 }
