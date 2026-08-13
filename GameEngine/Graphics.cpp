@@ -124,13 +124,16 @@ void Graphics::DrawTestTriangle()
 	{
 		float x;
 		float y;
+		float r;
+		float g;
+		float b;
 	};
 
 	const Vertex vertices[] =
 	{
-		{0.0f, 0.5f},
-		{0.5f, -0.5f},
-		{-0.5f, -0.5f},
+		{0.0f, 0.5f, 1.0f, 0.0f, 0.0f},
+		{0.5f, -0.5f, 0.0f, 1.0f, 0.0f},
+		{-0.5f, -0.5f, 0.0f, 0.0f, 1.0f},
 	};
 
 	wrl::ComPtr<ID3D11Buffer> pID3D11Buffer_VertexBuffer;
@@ -154,21 +157,12 @@ void Graphics::DrawTestTriangle()
 
 	pID3D11DeviceContext->IASetVertexBuffers(0u, 1u, pID3D11Buffer_VertexBuffer.GetAddressOf(), &stride, &offset);
 
-	// create pixel shader
-	wrl::ComPtr<ID3D11PixelShader> pID3D11PixelShader;
+	// create vertex shader
+	wrl::ComPtr<ID3D11VertexShader> pID3D11VertexShader;
 	wrl::ComPtr<ID3DBlob> pID3DBlob;
 
-	GFX_THROW_INFO(D3DReadFileToBlob(L"PixelShader.cso", &pID3DBlob));
-	GFX_THROW_INFO(pID3D11Device->CreatePixelShader(pID3DBlob->GetBufferPointer(), pID3DBlob->GetBufferSize(), nullptr, &pID3D11PixelShader));
-
-	// bind pixel shader
-	pID3D11DeviceContext->PSSetShader(pID3D11PixelShader.Get(), nullptr, 0u);
-
-	// create vertex shader
-	wrl::ComPtr<ID3D11VertexShader> pID3D11VertexShader;	
-
 	GFX_THROW_INFO(D3DReadFileToBlob(L"VertexShader.cso", &pID3DBlob)); // CSO - Compiled shader object
-	GFX_THROW_INFO(pID3D11Device -> CreateVertexShader(pID3DBlob -> GetBufferPointer(), pID3DBlob -> GetBufferSize(), nullptr, &pID3D11VertexShader));
+	GFX_THROW_INFO(pID3D11Device->CreateVertexShader(pID3DBlob->GetBufferPointer(), pID3DBlob->GetBufferSize(), nullptr, &pID3D11VertexShader));
 
 	// bind vertex shader
 	pID3D11DeviceContext->VSSetShader(pID3D11VertexShader.Get(), nullptr, 0u);
@@ -178,7 +172,8 @@ void Graphics::DrawTestTriangle()
 
 	const D3D11_INPUT_ELEMENT_DESC d3d11InputElementDesc[] =
 	{
-		{"POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}
+		{"POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
+		{"COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 8u, D3D11_INPUT_PER_VERTEX_DATA, 0}
 	};
 
 	GFX_THROW_INFO(pID3D11Device->CreateInputLayout
@@ -191,6 +186,18 @@ void Graphics::DrawTestTriangle()
 	));
 
 	pID3D11DeviceContext->IASetInputLayout(pID3D11InputLayout.Get());
+
+	// create pixel shader
+	wrl::ComPtr<ID3D11PixelShader> pID3D11PixelShader;
+	
+
+	GFX_THROW_INFO(D3DReadFileToBlob(L"PixelShader.cso", &pID3DBlob));
+	GFX_THROW_INFO(pID3D11Device->CreatePixelShader(pID3DBlob->GetBufferPointer(), pID3DBlob->GetBufferSize(), nullptr, &pID3D11PixelShader));
+
+	// bind pixel shader
+	pID3D11DeviceContext->PSSetShader(pID3D11PixelShader.Get(), nullptr, 0u);
+
+	
 
 	// bind render target
 	pID3D11DeviceContext->OMSetRenderTargets(1u, pID3D11RenderTargetView.GetAddressOf(), nullptr); // OM - Output Merger
