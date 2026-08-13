@@ -115,7 +115,7 @@ void Graphics::ClearBuffer(float red, float green, float blue) noexcept
 	pID3D11DeviceContext->ClearRenderTargetView(pID3D11RenderTargetView.Get(), color);
 }
 
-void Graphics::DrawTestTriangle()
+void Graphics::DrawTestTriangle(float angle)
 {
 	HRESULT hr;
 
@@ -191,6 +191,42 @@ void Graphics::DrawTestTriangle()
 
 	// bind index buffer
 	pID3D11DeviceContext->IASetIndexBuffer(pID3D11Buffer_IndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0u);
+
+	// create constant buffer for transformation matrix
+	struct ConstantBuffer
+	{
+		struct
+		{
+			float element[4][4];
+		} transformation;
+	};
+
+	const ConstantBuffer constantBuffer = 
+	{
+		{
+			(3.0f / 4.0f) * std::cos(angle), std::sin(angle), 0.0, 0.0f,
+			(3.0f / 4.0f) *  -std::sin(angle), std::cos(angle), 0.0, 0.0f,
+			0.0f, 0.0f, 1.0f, 0.0f,
+			0.0f, 0.0f, 0.0f, 1.0f
+		}
+	};
+
+	wrl::ComPtr<ID3D11Buffer> pID3D11Buffer_ConstantBuffer;
+
+	d3d11BufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	d3d11BufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+	d3d11BufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	d3d11BufferDesc.MiscFlags = 0u;
+	d3d11BufferDesc.ByteWidth = sizeof(constantBuffer);
+	d3d11BufferDesc.StructureByteStride = 0u;
+
+	d3d11SubResourceData.pSysMem = &constantBuffer;
+
+	GFX_THROW_INFO(pID3D11Device->CreateBuffer(&d3d11BufferDesc, &d3d11SubResourceData, &pID3D11Buffer_ConstantBuffer));
+
+	// bind the constant buffer
+
+	pID3D11DeviceContext->VSSetConstantBuffers(0u, 1u, pID3D11Buffer_ConstantBuffer.GetAddressOf());
 
 	// create vertex shader
 	wrl::ComPtr<ID3D11VertexShader> pID3D11VertexShader;

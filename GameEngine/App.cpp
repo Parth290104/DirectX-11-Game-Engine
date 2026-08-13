@@ -26,6 +26,6 @@ void App::DoFrame()
 {
 	const float c = sin(timer.Peek()) / 2.0f + 0.5f;
 	window.getGraphicsObject().ClearBuffer(c, c, 1.0f);
-	window.getGraphicsObject().DrawTestTriangle();
+	window.getGraphicsObject().DrawTestTriangle(timer.Peek());
 	window.getGraphicsObject().EndFrame();
 }

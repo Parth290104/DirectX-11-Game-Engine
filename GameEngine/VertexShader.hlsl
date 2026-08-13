@@ -1,3 +1,8 @@
+cbuffer ConstantBuffer
+{
+    row_major matrix transform;
+};
+
 struct VertexShaderOutput
 {
     float3 color : COLOR;
@@ -7,7 +12,7 @@ struct VertexShaderOutput
 VertexShaderOutput main( float2 pos : POSITION, float3 color : COLOR )
 {
     VertexShaderOutput vertexShaderOutput;
-    vertexShaderOutput.pos = float4(pos, 0.0f, 1.0f);
+    vertexShaderOutput.pos = mul(float4(pos.x, pos.y, 0.0f, 1.0f), transform);
     vertexShaderOutput.color = color;
     return vertexShaderOutput;
 }
