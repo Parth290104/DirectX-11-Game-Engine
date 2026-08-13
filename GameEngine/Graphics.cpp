@@ -122,11 +122,18 @@ void Graphics::DrawTestTriangle()
 	// Create vertex buffer (1 2D Triangle in the center of the screen)
 	struct Vertex
 	{
-		float x;
-		float y;
-		float r;
-		float g;
-		float b;
+		struct
+		{
+			float x;
+			float y;
+		} pos;
+
+		struct
+		{
+			float r;
+			float g;
+			float b;
+		} color;
 	};
 
 	const Vertex vertices[] =
@@ -134,6 +141,9 @@ void Graphics::DrawTestTriangle()
 		{0.0f, 0.5f, 1.0f, 0.0f, 0.0f},
 		{0.5f, -0.5f, 0.0f, 1.0f, 0.0f},
 		{-0.5f, -0.5f, 0.0f, 0.0f, 1.0f},
+		{-0.3f, 0.3f, 0.0f, 1.0f, 0.0f},
+		{0.3f, 0.3f, 0.0f, 1.0f, 0.0f},
+		{0.0f, -0.8f, 1.0f, 0.0f, 0.0f},
 	};
 
 	wrl::ComPtr<ID3D11Buffer> pID3D11Buffer_VertexBuffer;
@@ -151,11 +161,36 @@ void Graphics::DrawTestTriangle()
 
 	GFX_THROW_INFO(pID3D11Device->CreateBuffer(&d3d11BufferDesc, &d3d11SubResourceData, &pID3D11Buffer_VertexBuffer));
 
+
 	// Bind Vertex buffer to pipeline
 	const UINT stride = sizeof(Vertex);
 	const UINT offset = 0u;
 
 	pID3D11DeviceContext->IASetVertexBuffers(0u, 1u, pID3D11Buffer_VertexBuffer.GetAddressOf(), &stride, &offset);
+
+	// craeate index buffer
+	const unsigned short indices[] =
+	{
+		0, 1, 2,
+		0, 2, 3,
+		0, 4, 1,
+		2, 1, 5,
+	};
+	
+	wrl::ComPtr<ID3D11Buffer> pID3D11Buffer_IndexBuffer;
+
+	d3d11BufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	d3d11BufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	d3d11BufferDesc.CPUAccessFlags = 0u;
+	d3d11BufferDesc.MiscFlags = 0u;
+	d3d11BufferDesc.ByteWidth = sizeof(indices);
+	d3d11BufferDesc.StructureByteStride = sizeof(unsigned short);
+
+	d3d11SubResourceData.pSysMem = indices;
+	GFX_THROW_INFO(pID3D11Device->CreateBuffer(&d3d11BufferDesc, &d3d11SubResourceData, &pID3D11Buffer_IndexBuffer));
+
+	// bind index buffer
+	pID3D11DeviceContext->IASetIndexBuffer(pID3D11Buffer_IndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0u);
 
 	// create vertex shader
 	wrl::ComPtr<ID3D11VertexShader> pID3D11VertexShader;
@@ -198,7 +233,6 @@ void Graphics::DrawTestTriangle()
 	pID3D11DeviceContext->PSSetShader(pID3D11PixelShader.Get(), nullptr, 0u);
 
 	
-
 	// bind render target
 	pID3D11DeviceContext->OMSetRenderTargets(1u, pID3D11RenderTargetView.GetAddressOf(), nullptr); // OM - Output Merger
 
@@ -216,7 +250,7 @@ void Graphics::DrawTestTriangle()
 
 	pID3D11DeviceContext->RSSetViewports(1u, &d3d11Viewport); // RS - Rasterizer Stage
 
-	GFX_THROW_INFO_ONLY(pID3D11DeviceContext->Draw(static_cast<UINT>(std::size(vertices)), 0u));
+	GFX_THROW_INFO_ONLY(pID3D11DeviceContext->DrawIndexed(static_cast<UINT>(std::size(indices)), 0u, 0u));
 }
 
 Graphics::HrException::HrException(int line, const char* file, HRESULT hr, std::vector<std::string> infoMessages) noexcept : Exception(line, file), hr(hr)
