@@ -2,8 +2,10 @@
 #include "dxerr.h"
 #include <sstream>
 #include <d3dcompiler.h>
+#include <DirectXMath.h>
 
 namespace wrl = Microsoft::WRL;
+namespace dx = DirectX;
 
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "D3DCompiler.lib")
@@ -115,7 +117,7 @@ void Graphics::ClearBuffer(float red, float green, float blue) noexcept
 	pID3D11DeviceContext->ClearRenderTargetView(pID3D11RenderTargetView.Get(), color);
 }
 
-void Graphics::DrawTestTriangle(float angle)
+void Graphics::DrawTestTriangle(float angle, float x, float y)
 {
 	HRESULT hr;
 
@@ -195,20 +197,12 @@ void Graphics::DrawTestTriangle(float angle)
 	// create constant buffer for transformation matrix
 	struct ConstantBuffer
 	{
-		struct
-		{
-			float element[4][4];
-		} transformation;
+		dx::XMMATRIX transform;
 	};
 
-	const ConstantBuffer constantBuffer = 
+	const ConstantBuffer constantBuffer =
 	{
-		{
-			(3.0f / 4.0f) * std::cos(angle), std::sin(angle), 0.0, 0.0f,
-			(3.0f / 4.0f) *  -std::sin(angle), std::cos(angle), 0.0, 0.0f,
-			0.0f, 0.0f, 1.0f, 0.0f,
-			0.0f, 0.0f, 0.0f, 1.0f
-		}
+		dx::XMMatrixTranspose(dx::XMMatrixRotationZ(angle) * dx::XMMatrixScaling(3.0f / 4.0f, 1.0f, 1.0f) * dx::XMMatrixTranslation(x, y, 0.0f))
 	};
 
 	wrl::ComPtr<ID3D11Buffer> pID3D11Buffer_ConstantBuffer;

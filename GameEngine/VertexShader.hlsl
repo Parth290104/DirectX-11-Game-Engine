@@ -1,6 +1,6 @@
 cbuffer ConstantBuffer
 {
-    row_major matrix transform;
+    matrix transform;
 };
 
 struct VertexShaderOutput
