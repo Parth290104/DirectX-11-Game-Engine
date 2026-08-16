@@ -7,6 +7,7 @@
 #include "DXGIInfoManager.h"
 #include <wrl/client.h>
 #include <memory>
+#include <DirectXMath.h>
 
 class Graphics
 {
@@ -59,6 +60,9 @@ public:
 	~Graphics() = default;
 	void EndFrame();
 	void ClearBuffer(float red, float green, float blue) noexcept;
+	void DrawIndexed(UINT count);
+	void SetProjection(DirectX::FXMMATRIX _projectionMatrix) noexcept;
+	DirectX::XMMATRIX GetProjection() const noexcept;
 	void DrawTestTriangle(float angle, float x, float z);
 
 private:
@@ -70,5 +74,7 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11DeviceContext> pID3D11DeviceContext = nullptr;
 	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> pID3D11RenderTargetView = nullptr;
 	Microsoft::WRL::ComPtr<ID3D11DepthStencilView> pID3D11DepthStencilView = nullptr;
+
+	DirectX::XMMATRIX projectionMatrix;
 };
 

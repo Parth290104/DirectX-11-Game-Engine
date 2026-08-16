@@ -1,7 +1,6 @@
 #include "Graphics.h"
 #include "dxerr.h"
 #include <sstream>
-#include <DirectXMath.h>
 #include "GraphicsThrowMacros.h"
 
 namespace wrl = Microsoft::WRL;
@@ -50,10 +49,10 @@ Graphics::Graphics(HWND hWnd)
 		0,
 		D3D11_SDK_VERSION,
 		&dxgiSwapChainDesc,
-		&pIDXGISwapChain, // & operator first releases and then return the address
-		&pID3D11Device, // whereas GetAdreessOf() Directly returns the object.
+		pIDXGISwapChain.GetAddressOf(),
+		pID3D11Device.GetAddressOf(),
 		nullptr,
-		&pID3D11DeviceContext
+		pID3D11DeviceContext.GetAddressOf()
 	));
 
 	// gain access to texture subresource in swap chain (back buffer)
@@ -62,13 +61,13 @@ Graphics::Graphics(HWND hWnd)
 	GFX_THROW_INFO(pIDXGISwapChain->GetBuffer(
 		0,
 		__uuidof(ID3D11Resource),
-		&pID3D11Resource_BackBuffer
+		reinterpret_cast<void**>(pID3D11Resource_BackBuffer.GetAddressOf())
 	));
 
 	GFX_THROW_INFO(pID3D11Device->CreateRenderTargetView(
 		pID3D11Resource_BackBuffer.Get(),
 		nullptr,
-		&pID3D11RenderTargetView
+		pID3D11RenderTargetView.GetAddressOf()
 	));
 
 	// create depth stencil buffer
@@ -78,7 +77,7 @@ Graphics::Graphics(HWND hWnd)
 	d3d11DepthStencilDesc.DepthFunc = D3D11_COMPARISON_LESS;
 
 	wrl::ComPtr<ID3D11DepthStencilState> pID3D11DepthStencilState;
-	GFX_THROW_INFO(pID3D11Device->CreateDepthStencilState(&d3d11DepthStencilDesc, &pID3D11DepthStencilState));
+GFX_THROW_INFO(pID3D11Device->CreateDepthStencilState(&d3d11DepthStencilDesc, pID3D11DepthStencilState.GetAddressOf()));
 
 	// bind depth state
 	pID3D11DeviceContext->OMSetDepthStencilState(pID3D11DepthStencilState.Get(), 1u);
@@ -96,7 +95,7 @@ Graphics::Graphics(HWND hWnd)
 	d3d11Texture2DDesc.Usage = D3D11_USAGE_DEFAULT;
 	d3d11Texture2DDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
 
-	GFX_THROW_INFO(pID3D11Device -> CreateTexture2D(&d3d11Texture2DDesc, nullptr, &pID3D11Texture2D));
+	GFX_THROW_INFO(pID3D11Device -> CreateTexture2D(&d3d11Texture2DDesc, nullptr, pID3D11Texture2D.GetAddressOf()));
 
 	// create view of depth stencil texture
 	D3D11_DEPTH_STENCIL_VIEW_DESC d3d11DepthStencilViewDesc{};
@@ -104,10 +103,20 @@ Graphics::Graphics(HWND hWnd)
 	d3d11DepthStencilViewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
 	d3d11DepthStencilViewDesc.Texture2D.MipSlice = 0u;
 
-	GFX_THROW_INFO(pID3D11Device -> CreateDepthStencilView(pID3D11Texture2D.Get(), &d3d11DepthStencilViewDesc, &pID3D11DepthStencilView));
+	GFX_THROW_INFO(pID3D11Device -> CreateDepthStencilView(pID3D11Texture2D.Get(), &d3d11DepthStencilViewDesc, pID3D11DepthStencilView.GetAddressOf()));
 
 	// bind depth stencil view to Output Merger
 	pID3D11DeviceContext->OMSetRenderTargets(1u, pID3D11RenderTargetView.GetAddressOf(), pID3D11DepthStencilView.Get());
+
+	D3D11_VIEWPORT d3d11Viewport{};
+	d3d11Viewport.Width = 800.0f;
+	d3d11Viewport.Height = 600.0f;
+	d3d11Viewport.MinDepth = 0.0f;
+	d3d11Viewport.MaxDepth = 1.0f;
+	d3d11Viewport.TopLeftX = 0.0f;
+	d3d11Viewport.TopLeftY = 0.0f;
+
+	pID3D11DeviceContext->RSSetViewports(1u, &d3d11Viewport);
 }
 
 void Graphics::EndFrame()
@@ -134,211 +143,19 @@ void Graphics::ClearBuffer(float red, float green, float blue) noexcept
 	pID3D11DeviceContext->ClearDepthStencilView(pID3D11DepthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0u);
 }
 
-void Graphics::DrawTestTriangle(float angle, float x, float z)
+void Graphics::DrawIndexed(UINT count)
 {
-	HRESULT hr;
+	GFX_THROW_INFO_ONLY(pID3D11DeviceContext->DrawIndexed(count, 0u, 0u));
+}
 
-	// Create vertex buffer (1 2D Triangle in the center of the screen)
-	struct Vertex
-	{
-		struct
-		{
-			float x;
-			float y;
-			float z;
-		} pos;
-	};
+void Graphics::SetProjection(DirectX::FXMMATRIX _projectionMatrix) noexcept
+{
+	projectionMatrix = _projectionMatrix;
+}
 
-	const Vertex vertices[] =
-	{
-		{ -1.0f, -1.0f, -1.0f },
-		{  1.0f, -1.0f, -1.0f },
-		{ -1.0f,  1.0f, -1.0f },
-		{  1.0f,  1.0f, -1.0f },
-		{ -1.0f, -1.0f,  1.0f },
-		{  1.0f, -1.0f,  1.0f },
-		{ -1.0f,  1.0f,  1.0f },
-		{  1.0f,  1.0f,  1.0f },
-	};
-
-	wrl::ComPtr<ID3D11Buffer> pID3D11Buffer_VertexBuffer;
-
-	D3D11_BUFFER_DESC d3d11BufferDesc{};
-	d3d11BufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	d3d11BufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	d3d11BufferDesc.CPUAccessFlags = 0u;
-	d3d11BufferDesc.MiscFlags = 0;
-	d3d11BufferDesc.ByteWidth = sizeof(vertices);
-	d3d11BufferDesc.StructureByteStride = sizeof(Vertex);
-
-	D3D11_SUBRESOURCE_DATA d3d11SubResourceData{};
-	d3d11SubResourceData.pSysMem = vertices;
-
-	GFX_THROW_INFO(pID3D11Device->CreateBuffer(&d3d11BufferDesc, &d3d11SubResourceData, &pID3D11Buffer_VertexBuffer));
-
-
-	// Bind Vertex buffer to pipeline
-	const UINT stride = sizeof(Vertex);
-	const UINT offset = 0u;
-
-	pID3D11DeviceContext->IASetVertexBuffers(0u, 1u, pID3D11Buffer_VertexBuffer.GetAddressOf(), &stride, &offset);
-
-	// craeate index buffer
-	const unsigned short indices[] =
-	{
-		0, 2, 1, 2, 3, 1,
-		1, 3, 5, 3, 7, 5,
-		2, 6, 3, 3, 6, 7,
-		4, 5, 7, 4, 7, 6,
-		0, 4, 2, 2, 4, 6,
-		0, 1, 4, 1, 5, 4,
-	};
-	
-	wrl::ComPtr<ID3D11Buffer> pID3D11Buffer_IndexBuffer;
-
-	d3d11BufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-	d3d11BufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	d3d11BufferDesc.CPUAccessFlags = 0u;
-	d3d11BufferDesc.MiscFlags = 0u;
-	d3d11BufferDesc.ByteWidth = sizeof(indices);
-	d3d11BufferDesc.StructureByteStride = sizeof(unsigned short);
-
-	d3d11SubResourceData.pSysMem = indices;
-	GFX_THROW_INFO(pID3D11Device->CreateBuffer(&d3d11BufferDesc, &d3d11SubResourceData, &pID3D11Buffer_IndexBuffer));
-
-	// bind index buffer
-	pID3D11DeviceContext->IASetIndexBuffer(pID3D11Buffer_IndexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0u);
-
-	// create constant buffer for transformation matrix
-	struct ConstantBuffer
-	{
-		dx::XMMATRIX transform;
-	};
-
-	const ConstantBuffer constantBuffer =
-	{
-		dx::XMMatrixTranspose
-		(
-			dx::XMMatrixRotationZ(angle) * 
-			dx::XMMatrixRotationX(angle) *
-			dx::XMMatrixTranslation(x, 0.0f, z + 4.0f) * 
-			dx::XMMatrixPerspectiveLH(1.0f, 3.0f / 4.0f, 0.5f, 10.0f)
-		)
-	};
-
-	wrl::ComPtr<ID3D11Buffer> pID3D11Buffer_ConstantBuffer;
-
-	d3d11BufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	d3d11BufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-	d3d11BufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	d3d11BufferDesc.MiscFlags = 0u;
-	d3d11BufferDesc.ByteWidth = sizeof(constantBuffer);
-	d3d11BufferDesc.StructureByteStride = 0u;
-
-	d3d11SubResourceData.pSysMem = &constantBuffer;
-
-	GFX_THROW_INFO(pID3D11Device->CreateBuffer(&d3d11BufferDesc, &d3d11SubResourceData, &pID3D11Buffer_ConstantBuffer));
-
-	// bind the constant buffer
-	pID3D11DeviceContext->VSSetConstantBuffers(0u, 1u, pID3D11Buffer_ConstantBuffer.GetAddressOf());
-
-	// create vertex shader
-	wrl::ComPtr<ID3D11VertexShader> pID3D11VertexShader;
-	wrl::ComPtr<ID3DBlob> pID3DBlob;
-
-	GFX_THROW_INFO(D3DReadFileToBlob(L"VertexShader.cso", &pID3DBlob)); // CSO - Compiled shader object
-	GFX_THROW_INFO(pID3D11Device->CreateVertexShader(pID3DBlob->GetBufferPointer(), pID3DBlob->GetBufferSize(), nullptr, &pID3D11VertexShader));
-
-	// bind vertex shader
-	pID3D11DeviceContext->VSSetShader(pID3D11VertexShader.Get(), nullptr, 0u);
-
-	// input layout object (2D position only)
-	wrl::ComPtr<ID3D11InputLayout> pID3D11InputLayout;
-
-	const D3D11_INPUT_ELEMENT_DESC d3d11InputElementDesc[] =
-	{
-		{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
-	};
-
-	GFX_THROW_INFO(pID3D11Device->CreateInputLayout
-	(
-		d3d11InputElementDesc,
-		static_cast<UINT>(std::size(d3d11InputElementDesc)),
-		pID3DBlob->GetBufferPointer(),
-		pID3DBlob->GetBufferSize(),
-		&pID3D11InputLayout
-	));
-
-	pID3D11DeviceContext->IASetInputLayout(pID3D11InputLayout.Get());
-
-	struct ConstantBuffer2
-	{
-		struct
-		{
-			float r;
-			float g;
-			float b;
-			float a;
-		}  face_colors[6];
-	};
-
-	const ConstantBuffer2 constantBuffer2 =
-	{
-		{
-			{ 1.0f, 0.0f, 1.0f },
-			{ 1.0f, 0.0f, 0.0f },
-			{ 0.0f, 1.0f, 0.0f },
-			{ 0.0f, 0.0f, 1.0f },
-			{ 1.0f, 1.0f, 0.0f },
-			{ 0.0f, 1.0f, 1.0f },
-		}
-	};
-
-	// create the second constant buffer
-	wrl::ComPtr<ID3D11Buffer> pID3D11Buffer_ConstantBuffer2;
-	d3d11BufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	d3d11BufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	d3d11BufferDesc.CPUAccessFlags = 0u;
-	d3d11BufferDesc.MiscFlags = 0u;
-	d3d11BufferDesc.ByteWidth = sizeof(ConstantBuffer2);
-	d3d11BufferDesc.StructureByteStride = 0u;
-
-	d3d11SubResourceData.pSysMem = &constantBuffer2;
-
-	GFX_THROW_INFO(pID3D11Device -> CreateBuffer(&d3d11BufferDesc, &d3d11SubResourceData, pID3D11Buffer_ConstantBuffer2.GetAddressOf()));
-
-	// bind the second constant buffer to pixel
-	pID3D11DeviceContext->PSSetConstantBuffers(0u, 1u, pID3D11Buffer_ConstantBuffer2.GetAddressOf());
-
-	// create pixel shader
-	wrl::ComPtr<ID3D11PixelShader> pID3D11PixelShader;
-	
-
-	GFX_THROW_INFO(D3DReadFileToBlob(L"PixelShader.cso", &pID3DBlob));
-	GFX_THROW_INFO(pID3D11Device->CreatePixelShader(pID3DBlob->GetBufferPointer(), pID3DBlob->GetBufferSize(), nullptr, &pID3D11PixelShader));
-
-	// bind pixel shader
-	pID3D11DeviceContext->PSSetShader(pID3D11PixelShader.Get(), nullptr, 0u);
-
-	
-	// bind render target
-	pID3D11DeviceContext->OMSetRenderTargets(1u, pID3D11RenderTargetView.GetAddressOf(), pID3D11DepthStencilView.Get()); // OM - Output Merger
-
-	// Set primitive topology to triangle list
-	pID3D11DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-	// configure viewport
-	D3D11_VIEWPORT d3d11Viewport{};
-	d3d11Viewport.Width = 800;
-	d3d11Viewport.Height = 600;
-	d3d11Viewport.MinDepth = 0;
-	d3d11Viewport.MaxDepth = 1;
-	d3d11Viewport.TopLeftX = 0;
-	d3d11Viewport.TopLeftY = 0;
-
-	pID3D11DeviceContext->RSSetViewports(1u, &d3d11Viewport); // RS - Rasterizer Stage
-
-	GFX_THROW_INFO_ONLY(pID3D11DeviceContext->DrawIndexed(static_cast<UINT>(std::size(indices)), 0u, 0u));
+DirectX::XMMATRIX Graphics::GetProjection() const noexcept
+{
+	return projectionMatrix;
 }
 
 Graphics::HrException::HrException(int line, const char* file, HRESULT hr, std::vector<std::string> infoMessages) noexcept : Exception(line, file), hr(hr)

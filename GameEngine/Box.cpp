@@ -2,6 +2,20 @@
 #include "BindableBase.h"
 #include "GraphicsThrowMacros.h"
 
+namespace
+{
+	struct Vertex
+	{
+		struct
+		{
+			float x;
+			float y;
+			float z;
+		} position;
+	};
+
+}
+
 Box::Box(Graphics& graphicsObject, std::mt19937& rng,
 	std::uniform_real_distribution<float>& adist,
 	std::uniform_real_distribution<float>& ddist,
@@ -40,13 +54,13 @@ Box::Box(Graphics& graphicsObject, std::mt19937& rng,
 		{ 1.0f,1.0f,1.0f },
 	};
 
-	AddBind(std::make_unique<VertexBuffer>(graphicsObject, vertices));
+	AddBind(std::unique_ptr<VertexBuffer>(new VertexBuffer(graphicsObject, vertices)));
 
-	auto pVertexShader = std::make_unique<VertexShader>(graphicsObject, L"VertexShader.cso");
+	auto pVertexShader = std::unique_ptr<VertexShader>(new VertexShader(graphicsObject, L"VertexShader.cso"));
 	auto pVertexShaderByteCode = pVertexShader->GetByteCode();
 	AddBind(std::move(pVertexShader));
-	
-	AddBind(std::make_unique<PixelShader>(graphicsObject, L"PixelShader.cso"));
+
+	AddBind(std::unique_ptr<PixelShader>(new PixelShader(graphicsObject, L"PixelShader.cso")));
 
 	const std::vector<unsigned short> indices =
 	{
@@ -59,8 +73,8 @@ Box::Box(Graphics& graphicsObject, std::mt19937& rng,
 	};
 
 
-	AddIndexBuffer(std::make_unique<IndexBuffer>(graphicsObject, indices));
-
+	AddIndexBuffer(std::unique_ptr<IndexBuffer>(new IndexBuffer(graphicsObject, indices)));
+	// Constant buffer data
 	struct ConstantBuffer2
 	{
 		struct
@@ -84,17 +98,34 @@ Box::Box(Graphics& graphicsObject, std::mt19937& rng,
 		}
 	};
 
-
-	AddBind(std::make_unique<PixelConstantBuffer<ConstantBuffer2>>(graphicsObject, constantBuffer2));
+	AddBind(std::unique_ptr<PixelConstantBuffer<ConstantBuffer2>>(new PixelConstantBuffer<ConstantBuffer2>(graphicsObject, constantBuffer2)));
 
 	const std::vector<D3D11_INPUT_ELEMENT_DESC> d3d11InputElementDescVector =
 	{
 		{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}
 	};
 	
-	AddBind(std::make_unique<InputLayout>(graphicsObject, d3d11InputElementDescVector, pVertexShaderByteCode));
+	AddBind(std::unique_ptr<InputLayout>(new InputLayout(graphicsObject, d3d11InputElementDescVector, pVertexShaderByteCode)));
 
-	AddBind(std::make_unique<Topology>(graphicsObject, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST));
+	AddBind(std::unique_ptr<Topology>(new Topology(graphicsObject, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST)));
 
-	AddBind(std::make_unique<TransformCBuffer>(graphicsObject, *this));
+	AddBind(std::unique_ptr<TransformCBuffer>(new TransformCBuffer(graphicsObject, *this)));
+}
+
+void Box::Update(float dt) noexcept
+{
+	roll += deltaRoll * dt;
+	pitch += deltaPitch * dt;
+	yaw += deltaYaw * dt;
+	theta += deltaTheta * dt;
+	phi += deltaPhi * dt;
+	chi += deltaChi * dt;
+}
+
+DirectX::XMMATRIX Box::GetTransformXM() const noexcept
+{
+	return DirectX::XMMatrixRotationRollPitchYaw(pitch, yaw, roll) *
+		DirectX::XMMatrixTranslation(r, 0.0f, 0.0f) *
+		DirectX::XMMatrixRotationRollPitchYaw(theta, phi, chi) *
+		DirectX::XMMatrixTranslation(0.0f, 0.0f, 20.0f);
 }
