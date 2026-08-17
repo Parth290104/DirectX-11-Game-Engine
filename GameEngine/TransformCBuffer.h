@@ -10,6 +10,6 @@ public:
 	void Bind(Graphics& graphicsObject) noexcept override;
 
 private:
-	VertexConstantBuffer<DirectX::XMMATRIX> VertexConstantBuffer;
+	static std::unique_ptr<VertexConstantBuffer<DirectX::XMMATRIX>> pVertexConstantBuffer;
 	const Drawable& parent;
 };

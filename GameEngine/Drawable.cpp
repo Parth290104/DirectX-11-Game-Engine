@@ -5,15 +5,18 @@
 #include <cassert>
 #include <typeinfo>
 
-void Drawable::Draw(Graphics& graphicsObject) const noexcept
+void Drawable::Draw(Graphics& graphicsObject) const noexcept(!IS_DEBUG)
 {
 	for (auto& bindable : binds)
+		bindable->Bind(graphicsObject);
+
+	for (auto& bindable : GetStaticBinds())
 		bindable->Bind(graphicsObject);
 
 	graphicsObject.DrawIndexed(pIndexBuffer->GetCount());
 }
 
-void Drawable::AddBind(std::unique_ptr<Bindable> bindable) noexcept
+void Drawable::AddBind(std::unique_ptr<Bindable> bindable) noexcept(!IS_DEBUG)
 {
 	assert("*Must* use AddIndexBuffer to bind index buffer" && typeid(*bindable) != typeid(IndexBuffer));
 	binds.push_back(std::move(bindable));
